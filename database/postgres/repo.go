@@ -2,11 +2,9 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/rmarken5/lottery-calendar/model"
 )
@@ -17,9 +15,9 @@ var (
 
 type (
 	Repository interface {
-		GetCalendarPrizeForDate(ctx context.Context, CalendarID uuid.UUID, date time.Time) (model.Day, error)
-		// Create a method that queries based on gametype and drawing numbers to see if there's are matches and return the prizes.
-		// Update winning numbers table to contain column that is representation of the numbers so that it can be easily compared.
+		GetDistinctGameTypes(ctx context.Context) ([]model.GameType, error)
+		FindWinnersForGameOnDate(ctx context.Context, gameType model.GameType, winningNumbersString string, date time.Time) ([]model.Winner, error)
+		BulkInsertDays(ctx context.Context, days []model.DayForInsert) error
 	}
 
 	Database struct {
@@ -34,15 +32,9 @@ type (
 	}
 )
 
-func New(readerConn *sql.DB, writerConn *sql.DB) *Database {
+func New(readerConn *sqlx.DB, writerConn *sqlx.DB) *Database {
 	return &Database{
-		Reader: Reader{db: sqlx.NewDb(readerConn, "postgres")},
-		Writer: Writer{db: sqlx.NewDb(writerConn, "postgres")},
+		Reader: Reader{db: readerConn},
+		Writer: Writer{db: writerConn},
 	}
-}
-
-const getCalendarPrizeForDateQuery = `SELECT FROM DAY d INNER JOIN CALENDAR c on d.calendar_id = d.id where d.id = $1 and d.date $2`
-
-func (r *Reader) GetCalendarPrizeForDate(ctx context.Context, CalendarID uuid.UUID, date time.Time) (model.Day, error) {
-
 }
