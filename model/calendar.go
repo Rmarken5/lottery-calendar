@@ -30,8 +30,9 @@ type (
 
 	// PlayerNumbers is used to hold the winning numbers of a Player for a Calendar.
 	PlayerNumbers struct {
-		CalendarID     uuid.UUID
-		WinningNumbers []string
+		CalendarID      uuid.UUID
+		WinningNumbers  LotteryNumbers
+		NumbersAsString string
 	}
 
 	// Player plays Games
