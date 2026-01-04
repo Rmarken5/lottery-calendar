@@ -40,3 +40,16 @@ func (r *Reader) FindWinnersForGameOnDate(ctx context.Context, gameType model.Ga
 
 	return winners, nil
 }
+
+const getPlayersQuery = `select * from player p inner join player_number pn on p.id = pn.player_id`
+
+func (r *Reader) GetPlayers(ctx context.Context) ([]model.PlayerWithNumber, error) {
+	players := make([]model.PlayerWithNumber, 0)
+
+	err := r.db.SelectContext(ctx, &players, getPlayersQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	return players, nil
+}

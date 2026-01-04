@@ -25,7 +25,8 @@ var (
 
 type (
 	Logic interface {
-		GetWinningNumbers(ctx context.Context, gameType model.GameType, date time.Time) ([]uint8, error)
+		GettingWinningLotteryNumbers(ctx context.Context, gameType model.GameType, date time.Time) ([]uint8, error)
+		CheckForWinners(ctx context.Context, date time.Time) ([]model.DrawingReport, error)
 		BulkInsertCalendarDays(ctx context.Context, daysInJsonBytes []byte) error
 	}
 	Controller struct {
@@ -113,6 +114,58 @@ func (c Controller) GetWinningNumbers(ctx context.Context, gameType model.GameTy
 
 }
 
+func (c Controller) CheckForWinners(ctx context.Context, date time.Time) ([]model.DrawingReport, error) {
+	types, err := c.repo.GetDistinctGameTypes(ctx)
+	if err != nil {
+		slog.Error("error in getting distinct game types from database", "error", err)
+		return nil, err
+	}
+
+
+	type typeAndNumber struct {
+		gameType model.GameType
+		numbers model.LotteryNumbers
+	}
+	winningNumbers := make([]typeAndNumber, 0)
+
+	for _, tipe := range types {
+		numbers, err := c.GetWinningNumbers(ctx, tipe, date)
+		if err != nil {
+			slog.Error("error getting winning numbers", "error", err)
+			return nil, err
+		}
+		winningNumbers = append(winningNumbers, typeAndNumber{gameType: tipe, numbers: numbers})
+	}
+
+	reports := make([]model.DrawingReport, 0)
+	for _, winningNumber := range winningNumbers {
+		winningPlayer, err := c.repo.FindWinnersForGameOnDate(ctx, winningNumber.gameType, winningNumber.numbers.ToDBRepresentation(), date)
+		if err != nil {
+			slog.Error("error getting winners", "error", err, "game type", winningNumber.gameType, "date", date.String(), "numbers", winningNumber.numbers.ToDBRepresentation())
+			return nil, err
+		}
+		for _, winner := range winningPlayer {
+			reports = append(reports, model.DrawingReport{
+				GameName:     winner.CalendarName,
+				Prize:        winner.Prize,
+				NumbersDrawn: winningNumber.numbers.ToDBRepresentation(),
+				Winner:       ,
+			})
+		}
+		winners = append(winners, winningPlayer...)
+	}
+
+	for i, winner := range winners {
+		reports[i] = model.DrawingReport{
+			GameName:     winner.CalendarName,
+			Prize:        winner.Prize,
+			NumbersDrawn: winner.,
+			Winner:       nil,
+		}
+	}
+
+}
+
 func (d DrawingGame) NumbersFromGameType(gameType model.GameType) model.LotteryNumbers {
 	winningNumbers := make(model.LotteryNumbers, NumbersInGameType[gameType])
 	switch gameType {
@@ -128,3 +181,4 @@ func (d DrawingGame) NumbersFromGameType(gameType model.GameType) model.LotteryN
 	}
 	return winningNumbers
 }
+

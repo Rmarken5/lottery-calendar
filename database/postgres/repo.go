@@ -18,6 +18,7 @@ type (
 		GetDistinctGameTypes(ctx context.Context) ([]model.GameType, error)
 		FindWinnersForGameOnDate(ctx context.Context, gameType model.GameType, winningNumbersString string, date time.Time) ([]model.Winner, error)
 		BulkInsertDays(ctx context.Context, days []model.DayForInsert) error
+		GetPlayers(ctx context.Context) ([]model.PlayerWithNumber, error)
 	}
 
 	Database struct {
